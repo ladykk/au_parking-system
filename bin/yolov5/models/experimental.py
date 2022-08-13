@@ -8,8 +8,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from models.common import Conv
-from utils.downloads import attempt_download
+from bin.yolov5.models.common import Conv
+from bin.yolov5.utils.downloads import attempt_download
 
 
 class Sum(nn.Module):
@@ -59,7 +59,7 @@ class MixConv2d(nn.Module):
 
 
 class Ensemble(nn.ModuleList):
-    # Ensemble of models
+    # Ensemble of bin.yolov5.models
     def __init__(self):
         super().__init__()
 
@@ -72,8 +72,8 @@ class Ensemble(nn.ModuleList):
 
 
 def attempt_load(weights, device=None, inplace=True, fuse=True):
-    # Loads an ensemble of models weights=[a,b,c] or a single model weights=[a] or weights=a
-    from models.yolo import Detect, Model
+    # Loads an ensemble of bin.yolov5.models weights=[a,b,c] or a single model weights=[a] or weights=a
+    from bin.yolov5.models.yolo import Detect, Model
 
     model = Ensemble()
     for w in weights if isinstance(weights, list) else [weights]:
@@ -98,5 +98,5 @@ def attempt_load(weights, device=None, inplace=True, fuse=True):
     for k in 'names', 'nc', 'yaml':
         setattr(model, k, getattr(model[0], k))
     model.stride = model[torch.argmax(torch.tensor([m.stride.max() for m in model])).int()].stride  # max stride
-    assert all(model[0].nc == m.nc for m in model), f'Models have different class counts: {[m.nc for m in model]}'
+    assert all(model[0].nc == m.nc for m in model), f'bin.yolov5.models have different class counts: {[m.nc for m in model]}'
     return model  # return ensemble

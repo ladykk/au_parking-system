@@ -35,7 +35,7 @@ def gsutil_getsize(url=''):
 
 def safe_download(file, url, url2=None, min_bytes=1E0, error_msg=''):
     # Attempts to download file from url or url2, checks and removes incomplete downloads < min_bytes
-    from utils.general import LOGGER
+    from bin.yolov5.utils.general import LOGGER
 
     file = Path(file)
     assert_msg = f"Downloaded file '{file}' does not exist or size is < min_bytes={min_bytes}"
@@ -56,7 +56,7 @@ def safe_download(file, url, url2=None, min_bytes=1E0, error_msg=''):
 
 def attempt_download(file, repo='ultralytics/yolov5', release='v6.1'):
     # Attempt file download from GitHub release assets if not found locally. release = 'latest', 'v6.1', etc.
-    from utils.general import LOGGER
+    from bin.yolov5.utils.general import LOGGER
 
     def github_assets(repository, version='latest'):
         # Return GitHub repo tag (i.e. 'v6.1') and assets (i.e. ['yolov5s.pt', 'yolov5m.pt', ...])
@@ -107,7 +107,7 @@ def attempt_download(file, repo='ultralytics/yolov5', release='v6.1'):
 
 
 def gdrive_download(id='16TiPfZj7htmTyhntwcZyEEAejOUxuT6m', file='tmp.zip'):
-    # Downloads a file from Google Drive. from yolov5.utils.downloads import *; gdrive_download()
+    # Downloads a file from Google Drive. from yolov5.bin.yolov5.utils.downloads import *; gdrive_download()
     t = time.time()
     file = Path(file)
     cookie = Path('cookie')  # gdrive cookie

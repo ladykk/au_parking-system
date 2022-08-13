@@ -3,7 +3,7 @@
 YOLO-specific modules
 
 Usage:
-    $ python path/to/models/yolo.py --cfg yolov5s.yaml
+    $ python path/to/bin.yolov5.models/yolo.py --cfg yolov5s.yaml
 """
 
 import argparse
@@ -21,12 +21,12 @@ if str(ROOT) not in sys.path:
 if platform.system() != 'Windows':
     ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
-from models.common import *
-from models.experimental import *
-from utils.autoanchor import check_anchor_order
-from utils.general import LOGGER, check_version, check_yaml, make_divisible, print_args
-from utils.plots import feature_visualization
-from utils.torch_utils import (fuse_conv_and_bn, initialize_weights, model_info, profile, scale_img, select_device,
+from bin.yolov5.models.common import *
+from bin.yolov5.models.experimental import *
+from bin.yolov5.utils.autoanchor import check_anchor_order
+from bin.yolov5.utils.general import LOGGER, check_version, check_yaml, make_divisible, print_args
+from bin.yolov5.utils.plots import feature_visualization
+from bin.yolov5.utils.torch_utils import (fuse_conv_and_bn, initialize_weights, model_info, profile, scale_img, select_device,
                                time_sync)
 
 try:
@@ -326,8 +326,8 @@ if __name__ == '__main__':
     elif opt.profile:  # profile forward-backward
         results = profile(input=im, ops=[model], n=3)
 
-    elif opt.test:  # test all models
-        for cfg in Path(ROOT / 'models').rglob('yolo*.yaml'):
+    elif opt.test:  # test all bin.yolov5.models
+        for cfg in Path(ROOT / 'bin.yolov5.models').rglob('yolo*.yaml'):
             try:
                 _ = Model(cfg)
             except Exception as e:

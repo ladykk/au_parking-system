@@ -64,12 +64,12 @@ if str(ROOT) not in sys.path:
 if platform.system() != 'Windows':
     ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
-from models.experimental import attempt_load
-from models.yolo import Detect
-from utils.dataloaders import LoadImages
-from utils.general import (LOGGER, check_dataset, check_img_size, check_requirements, check_version, check_yaml,
+from bin.yolov5.models.experimental import attempt_load
+from bin.yolov5.models.yolo import Detect
+from bin.yolov5.utils.dataloaders import LoadImages
+from bin.yolov5.utils.general import (LOGGER, check_dataset, check_img_size, check_requirements, check_version, check_yaml,
                            colorstr, file_size, print_args, url2file)
-from utils.torch_utils import select_device
+from bin.yolov5.utils.torch_utils import select_device
 
 
 def export_formats():
@@ -204,7 +204,7 @@ def export_coreml(model, im, file, int8, half, prefix=colorstr('CoreML:')):
             if platform.system() == 'Darwin':  # quantization only supported on macOS
                 with warnings.catch_warnings():
                     warnings.filterwarnings("ignore", category=DeprecationWarning)  # suppress numpy==1.20 float warning
-                    ct_model = ct.models.neural_network.quantization_utils.quantize_weights(ct_model, bits, mode)
+                    ct_model = ct.bin.yolov5.models.neural_network.quantization_bin.yolov5.utils.quantize_weights(ct_model, bits, mode)
             else:
                 print(f'{prefix} quantization only supported on macOS, skipping...')
         ct_model.save(f)
@@ -300,7 +300,7 @@ def export_saved_model(model,
         import tensorflow as tf
         from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 
-        from models.tf import TFDetect, TFModel
+        from bin.yolov5.models.tf import TFDetect, TFModel
 
         LOGGER.info(f'\n{prefix} starting export with tensorflow {tf.__version__}...')
         f = str(file).replace('.pt', '_saved_model')
@@ -370,7 +370,7 @@ def export_tflite(keras_model, im, file, int8, data, nms, agnostic_nms, prefix=c
         converter.target_spec.supported_types = [tf.float16]
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
         if int8:
-            from models.tf import representative_dataset_gen
+            from bin.yolov5.models.tf import representative_dataset_gen
             dataset = LoadImages(check_dataset(check_yaml(data))['train'], img_size=imgsz, auto=False)
             converter.representative_dataset = lambda: representative_dataset_gen(dataset, ncalib=100)
             converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
@@ -391,7 +391,7 @@ def export_tflite(keras_model, im, file, int8, data, nms, agnostic_nms, prefix=c
 
 
 def export_edgetpu(file, prefix=colorstr('Edge TPU:')):
-    # YOLOv5 Edge TPU export https://coral.ai/docs/edgetpu/models-intro/
+    # YOLOv5 Edge TPU export https://coral.ai/docs/edgetpu/bin.yolov5.models-intro/
     try:
         cmd = 'edgetpu_compiler --version'
         help_url = 'https://coral.ai/docs/edgetpu/compiler/'
@@ -541,7 +541,7 @@ def run(
     if any((saved_model, pb, tflite, edgetpu, tfjs)):
         if int8 or edgetpu:  # TFLite --int8 bug https://github.com/ultralytics/yolov5/issues/5707
             check_requirements(('flatbuffers==1.12',))  # required before `import tensorflow`
-        assert not tflite or not tfjs, 'TFLite and TF.js models must be exported separately, please pass only one type.'
+        assert not tflite or not tfjs, 'TFLite and TF.js bin.yolov5.models must be exported separately, please pass only one type.'
         model, f[5] = export_saved_model(model.cpu(),
                                          im,
                                          file,
