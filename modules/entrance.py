@@ -94,8 +94,8 @@ class EntranceState(State):
         if self.seconds_from_now(10) and self.info.get("tid", None) is None:
             self.next_state = "idle"
             return
-        # 2.After issue solve -> [S0:Idle]
-        if Transaction.get(self.info.get("tid", '')) is None:
+        # 2.After issue solve or timeout 120 seconds  -> [S0:Idle]
+        if Transaction.get(self.info.get("tid", '')) is None or self.seconds_from_now(120):
             self.next_state = "idle"
             return
         # 3.Button pressed on Controller -> [S0:Idle]

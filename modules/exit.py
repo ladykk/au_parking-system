@@ -123,8 +123,8 @@ class ExitState(State):
         if transaction.is_paid():  # Transaction paid -> [S3: Success]
             self.next_state = "success"
             return
-        # Transaction unpaid after 60 seconds -> [S4: Failed]
-        if self.seconds_from_now(60):
+        # Transaction unpaid after 120 seconds -> [S4: Failed]
+        if self.seconds_from_now(120):
             self.info = {"reason": "Payment timeout."}
             self.next_state = "failed"
             return

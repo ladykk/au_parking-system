@@ -238,3 +238,13 @@ class ControllerServer:
 
     def close_barricade(self):
         self._db_ref.child('command').set(f'close_barricade')
+
+
+def main():
+    # > Create contrller client.
+    controller = ControllerClient("test", "<port>")
+    controller.start()
+
+
+if __name__ == '__main__':
+    main()

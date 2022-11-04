@@ -41,13 +41,25 @@ class Transaction(object):
     def is_license_number_exists(license_number: str):
         for tid, transaction in Transaction.list.items():
             if transaction.license_number == license_number:
-                return True, tid
+                if not transaction.is_out():
+                    return True, tid
+        return False, None
+
+    @staticmethod
+    def is_license_number_unpaid(license_number: str):
+        for tid, transaction in Transaction.list.items():
+            if transaction.license_number == license_number:
+                if not transaction.is_paid():
+                    return True, tid
         return False, None
 
     @staticmethod
     def add(license_number: str):
         is_exists, tid = Transaction.is_license_number_exists(license_number)
         if is_exists:
+            return False, None
+        is_unpaid, tid = Transaction.is_license_number_unpaid(license_number)
+        if is_unpaid:
             return False, tid
         update_time, ref = Transaction.transactions_ref.add(
             {"license_number": license_number, "timestamp_in": firestore.SERVER_TIMESTAMP})
@@ -68,6 +80,9 @@ class Transaction(object):
 
     def is_paid(self):
         return self.status == "Paid"
+
+    def is_out(self):
+        return self.timestamp_out is datetime
 
     def closed(self):
         # Update timestamp_out.
