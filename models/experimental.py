@@ -8,8 +8,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from bin.yolov5.models.common import Conv
-from bin.yolov5.utils.downloads import attempt_download
+from models.common import Conv
+from utils.downloads import attempt_download
 
 
 class Sum(nn.Module):
@@ -19,7 +19,8 @@ class Sum(nn.Module):
         self.weight = weight  # apply weights boolean
         self.iter = range(n - 1)  # iter object
         if weight:
-            self.w = nn.Parameter(-torch.arange(1.0, n) / 2, requires_grad=True)  # layer weights
+            self.w = nn.Parameter(-torch.arange(1.0, n) / 2,
+                                  requires_grad=True)  # layer weights
 
     def forward(self, x):
         y = x[0]  # no weight
@@ -35,7 +36,8 @@ class Sum(nn.Module):
 
 class MixConv2d(nn.Module):
     # Mixed Depth-wise Conv https://arxiv.org/abs/1907.09595
-    def __init__(self, c1, c2, k=(1, 3), s=1, equal_ch=True):  # ch_in, ch_out, kernel, stride, ch_strategy
+    # ch_in, ch_out, kernel, stride, ch_strategy
+    def __init__(self, c1, c2, k=(1, 3), s=1, equal_ch=True):
         super().__init__()
         n = len(k)  # number of convolutions
         if equal_ch:  # equal c_ per group
@@ -47,7 +49,8 @@ class MixConv2d(nn.Module):
             a -= np.roll(a, 1, axis=1)
             a *= np.array(k) ** 2
             a[0] = 1
-            c_ = np.linalg.lstsq(a, b, rcond=None)[0].round()  # solve for equal weight indices, ax = b
+            # solve for equal weight indices, ax = b
+            c_ = np.linalg.lstsq(a, b, rcond=None)[0].round()
 
         self.m = nn.ModuleList([
             nn.Conv2d(c1, int(c_), k, s, k // 2, groups=math.gcd(c1, int(c_)), bias=False) for k, c_ in zip(k, c_)])
@@ -59,7 +62,7 @@ class MixConv2d(nn.Module):
 
 
 class Ensemble(nn.ModuleList):
-    # Ensemble of bin.yolov5.models
+    # Ensemble of models
     def __init__(self):
         super().__init__()
 
@@ -72,14 +75,16 @@ class Ensemble(nn.ModuleList):
 
 
 def attempt_load(weights, device=None, inplace=True, fuse=True):
-    # Loads an ensemble of bin.yolov5.models weights=[a,b,c] or a single model weights=[a] or weights=a
-    from bin.yolov5.models.yolo import Detect, Model
+    # Loads an ensemble of models weights=[a,b,c] or a single model weights=[a] or weights=a
+    from models.yolo import Detect, Model
 
     model = Ensemble()
     for w in weights if isinstance(weights, list) else [weights]:
         ckpt = torch.load(attempt_download(w), map_location='cpu')  # load
-        ckpt = (ckpt.get('ema') or ckpt['model']).to(device).float()  # FP32 model
-        model.append(ckpt.fuse().eval() if fuse else ckpt.eval())  # fused or un-fused model in eval mode
+        ckpt = (ckpt.get('ema') or ckpt['model']).to(
+            device).float()  # FP32 model
+        # fused or un-fused model in eval mode
+        model.append(ckpt.fuse().eval() if fuse else ckpt.eval())
 
     # Compatibility updates
     for m in model.modules():
@@ -97,6 +102,8 @@ def attempt_load(weights, device=None, inplace=True, fuse=True):
     print(f'Ensemble created with {weights}\n')
     for k in 'names', 'nc', 'yaml':
         setattr(model, k, getattr(model[0], k))
-    model.stride = model[torch.argmax(torch.tensor([m.stride.max() for m in model])).int()].stride  # max stride
-    assert all(model[0].nc == m.nc for m in model), f'bin.yolov5.models have different class counts: {[m.nc for m in model]}'
+    model.stride = model[torch.argmax(torch.tensor(
+        [m.stride.max() for m in model])).int()].stride  # max stride
+    assert all(
+        model[0].nc == m.nc for m in model), f'models have different class counts: {[m.nc for m in model]}'
     return model  # return ensemble
