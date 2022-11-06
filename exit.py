@@ -1,5 +1,5 @@
-from modules.state import State
-from modules.transaction import Transaction
+from state import State
+from transaction import Transaction
 
 
 class ExitState(State):
@@ -31,6 +31,8 @@ class ExitState(State):
 
     def _detect(self):  # > Logic
         # Check for license_number in transaction.
+        f_tid = None
+        f_license_number = None
         for license_number in self.alpr.keys():
             # Continue if already checked.
             if license_number in self.info.get("checked_license_numbers"):
@@ -39,28 +41,26 @@ class ExitState(State):
             is_exists, tid = Transaction.is_license_number_exists(
                 license_number)
             if is_exists:  # Break if license_number exists.
+                f_tid = tid
+                f_license_number = license_number
                 break
             else:  # Append to checked_license_numbers if not found.
                 self.info["checked_license_numbers"].append(license_number)
 
         # > Next state
         # 1.Found tid -> [S2:Detect]
-        if tid is not None:
+        if f_tid is not None:
             self.next_state = "get"
-            self.info = {"tid": tid}
+            self.info = {"tid": f_tid, "license_number": f_license_number}
             return
         # 2.Hand hovered on Controller -> [S0:Idle]
         if self.controller.k_hover:
             self.next_state = "idle"
             return
-        # 3.If not found all -> [S5:Failed]
-        if len(self.alpr.keys()) == len(self.info.get("checked_license_numbers", [])):
+        # 3.If not found all afer (60 seconds) -> [S5:Failed]
+        if len(self.alpr.keys()) == len(self.info.get("checked_license_numbers", [])) and self.seconds_from_now(60):
             self.info = {"reason": "Not found license_number in the system."}
             self.next_state = "failed"
-            return
-        # 4.No action after 30 seconds -> [S0:Idle]
-        if self.seconds_from_now(30):
-            self.next_state = "idle"
             return
 
     # [S2]: Get transaction

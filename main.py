@@ -1,5 +1,5 @@
-from modules.entrance import EntranceState
-from modules.exit import ExitState
+from entrance import EntranceState
+from exit import ExitState
 
 
 def main():

@@ -2,11 +2,11 @@ from datetime import datetime
 from threading import Thread, Event
 from utils.time import datetime_now, seconds_from_now
 from utils.logger import getLogger
-from modules.firebase import TempDb
+from firebase import TempDb
 from firebase_admin.db import Event as dbEvent
 from deepdiff import DeepDiff
-from modules.controller import ControllerServer
-from modules.alpr import ALPR
+from controller import ControllerServer
+from alpr import ALPR
 
 
 class State(object):

@@ -2,7 +2,7 @@ from threading import Event, Thread
 import time
 from serial import Serial
 from utils.logger import getLogger
-from modules.firebase import TempDb
+from firebase import TempDb
 from firebase_admin.db import Event as dbEvent
 from deepdiff import DeepDiff
 from datetime import datetime
@@ -57,14 +57,14 @@ class ControllerClient:
         self._stop_event = Event()
 
     # > Get functions
-    def k_hover(self): return self._k_sensor <= self._hover_cm
-    def p_has_car(self): return self._p_sensor <= self._car_cm
+    def k_hover(self): return self.k_sensor <= self._hover_cm
+    def p_has_car(self): return self.p_sensor <= self._car_cm
 
     # > Database functions
     def _format_db_status(self): return {
         "mode": self.mode,
-        "b_open": self._b_open,
-        "b_close": self._b_close,
+        "b_open": self.b_open,
+        "b_close": self.b_close,
         "k_hover": self.k_hover(),
         "k_button": self.k_button,
         "p_has_car": self.p_has_car(),
@@ -129,13 +129,13 @@ class ControllerClient:
         if(input[0] != "Values"):
             return  # skipping if not values.
         variables = input[1].split(',')  # convert into array and assign.
-        self._mode = True if variables[0] == '1' else False
-        self._b_open = True if variables[1] == '1' else False
-        self._b_close = True if variables[2] == '1' else False
-        self._k_sensor = int(variables[3])
-        self._k_button = True if variables[4] == '1' else False
-        self._p_sensor = int(variables[5])
-        self._p_barricade = True if variables[6] == '1' else False
+        self.mode = True if variables[0] == '1' else False
+        self.b_open = True if variables[1] == '1' else False
+        self.b_close = True if variables[2] == '1' else False
+        self.k_sensor = int(variables[3])
+        self.k_button = True if variables[4] == '1' else False
+        self.p_sensor = int(variables[5])
+        self.p_barricade = True if variables[6] == '1' else False
 
         if self._is_db_difference():
             self._db_ref.child('status').set(self._format_db_status())
@@ -153,9 +153,9 @@ class ControllerClient:
             input = self._command.split(':')
             if hasattr(self, f'_c_{input[0]}()'):
                 if input[1]:
-                    getattr(self, f'_c_{input[0]}()')(input[1])
+                    getattr(self, f'_c_{input[0]}')(input[1])
                 else:
-                    getattr(self, f'_c_{input[0]}()')()
+                    getattr(self, f'_c_{input[0]}')()
             self._db_ref.child('command').set('')
 
     # > Command functions

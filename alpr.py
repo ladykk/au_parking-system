@@ -18,7 +18,7 @@ from utils.ocr import image_to_license_number
 from utils.logger import getLogger
 from tkinter import Tk, Label
 from PIL import Image, ImageTk
-from modules.firebase import TempDb
+from firebase import TempDb
 from firebase_admin.db import Event as dbEvent
 from deepdiff import DeepDiff
 from datetime import datetime
@@ -193,7 +193,8 @@ def inference(
                 # Step 3.4: Apply OCR
                 iminput, imgray, imthres, imcontour, imcorner, imwarp = warp_image(
                     imbc)
-                is_detect, license_number = image_to_license_number(imwarp)
+                is_detect, license_number = image_to_license_number(
+                    imthres if imthres is not None else iminput)
 
                 # Step 3.5: Update node values.
                 if is_detect:
@@ -353,11 +354,12 @@ class ALPR:
     def _command_exec(self):
         if self._command != '':
             input = self._command.split(':')
-            if hasattr(self, f'_c_{input[0]}()'):
-                if input[1]:
-                    getattr(self, f'_c_{input[0]}()')(input[1])
+            self._logger.info(input)
+            if hasattr(self, f'_c_{input[0]}'):
+                if len(input) > 1:
+                    getattr(self, f'_c_{input[0]}')(input[1])
                 else:
-                    getattr(self, f'_c_{input[0]}()')()
+                    getattr(self, f'_c_{input[0]}')()
             self._db_ref.child('command').set('')
 
     # > ALPR functions.

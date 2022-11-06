@@ -2,11 +2,11 @@ from datetime import datetime
 from threading import Thread, Event
 from utils.time import datetime_now, seconds_from_now
 from utils.logger import getLogger
-from modules.firebase import TempDb
+from firebase import TempDb
 from firebase_admin.db import Event as dbEvent
 from deepdiff import DeepDiff
-from modules.controller import ControllerServer
-from modules.alpr import ALPR
+from controller import ControllerServer
+from alpr import ALPR
 
 
 class State(object):
@@ -127,9 +127,9 @@ class State(object):
     def _command_exec(self):
         if self._command != '':
             input = self._command.split(':')
-            if hasattr(self, f'_c_{input[0]}()'):
+            if hasattr(self, f'_c_{input[0]}'):
                 if input[1]:
-                    getattr(self, f'_c_{input[0]}()')(input[1])
+                    getattr(self, f'_c_{input[0]}')(input[1])
                 else:
-                    getattr(self, f'_c_{input[0]}()')()
+                    getattr(self, f'_c_{input[0]}')()
             self._db_ref.child('command').set('')

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from modules.firebase import Db
+from firebase import Db
 from firebase_admin.firestore import firestore
 
 

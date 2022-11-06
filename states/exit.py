@@ -1,5 +1,5 @@
-from modules.state import State
-from modules.transaction import Transaction
+from state import State
+from transaction import Transaction
 
 
 class ExitState(State):

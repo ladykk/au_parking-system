@@ -13,8 +13,10 @@ def warp_image(
         # Step 1: Convert Image to Grayscale.
         imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
     # Step 2: Threshold the Image.
-        imthres = cv2.adaptiveThreshold(
-            imgray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 311, 8)
+        imthres = cv2.adaptiveThreshold(imgray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                        cv2.THRESH_BINARY, 51, 2)
+        # imthres = cv2.adaptiveThreshold(
+        #     imgray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 311, 1)
     # Step 3: Contours the Image.
         contours, _ = cv2.findContours(
             imthres, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
