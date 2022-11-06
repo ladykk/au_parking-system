@@ -24,7 +24,9 @@ def image_to_license_number(im):
             if len(filtered_texts) > 2:
                 break  # if more than 2 texts.
             # has more than 2 characters -> filter out provice.
-            if len(text) > 2:
+            elif len(text) > 7:
+                continue
+            elif len(text) > 2:
                 is_contain_number = False
                 for char in text:
                     if char.isdigit():
