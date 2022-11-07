@@ -7,14 +7,12 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 from multiprocessing import Queue
-from utils.image import warp_image
 from models.common import DetectMultiBackend
 from utils.dataloaders import LoadStreams
 from utils.general import (
     check_img_size, non_max_suppression, scale_coords)
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, time_sync
-from utils.ocr import image_to_license_number
 from utils.logger import getLogger
 from tkinter import Tk, Label
 from PIL import Image, ImageTk
@@ -23,6 +21,9 @@ from firebase_admin.db import Event as dbEvent
 from deepdiff import DeepDiff
 from datetime import datetime
 from utils.time import datetime_now, seconds_from_now
+import easyocr
+from operator import contains
+from constants.license_plate import LICENSE_NUMBER_CHARS
 
 # > Initialize project path
 FILE = Path(__file__).resolve()
@@ -58,21 +59,23 @@ def inference(
     half = False  # Use FP16 half-precisiob inference.
     dnn = False  # Use OpenCV DNN for ONNX inference.
 
+    # > Initialize EasyOCR reader.
+    reader = easyocr.Reader(['th'])
+
     # GUI settings
     gui = Tk()
     gui.title(f'ALPR: {name.capitalize()} Preview')
-    gui.geometry("800x850+20+0" if name != 'exit' else "800x850+850+0")
-    gui.minsize("800", "850")
-    gui.maxsize("800", "850")
+    gui.geometry("800x750+20+0" if name != 'exit' else "800x750+850+0")
+    gui.minsize("800", "750")
+    gui.maxsize("800", "750")
     gui.rowconfigure(0, minsize="450")
-    gui.rowconfigure(2, minsize="144")
-    gui.rowconfigure(4, minsize="144")
+    gui.rowconfigure(2, minsize="225")
 
     # Widgets
 
     # video_feed
     video_feed = Label(gui, text="(source video)")
-    video_feed.grid(row=0, column=0, columnspan=3)
+    video_feed.grid(row=0, column=0, columnspan=2)
     video_feed_label = Label(gui, text="Video Feed")
     video_feed_label.grid(row=1, column=0,  columnspan=3, pady=(5, 5))
 
@@ -82,35 +85,11 @@ def inference(
     input_feed_label = Label(gui, text="ALPR: Input")
     input_feed_label.grid(row=3, column=0, pady=(5, 5))
 
-    # grayscale feed.
-    gray_feed = Label(gui, text="(wait for license plate detection)")
-    gray_feed.grid(row=2, column=1)
-    gray_feed_label = Label(gui, text="ALPR: Grayscale")
-    gray_feed_label.grid(row=3, column=1, pady=(5, 5))
-
-    # threshold feed.
-    thres_feed = Label(gui, text="(wait for license plate detection)")
-    thres_feed.grid(row=2, column=2)
-    thres_feed_label = Label(gui, text="ALPR: Threshold")
-    thres_feed_label.grid(row=3, column=2, pady=(5, 5))
-
-    # contour feed.
-    contour_feed = Label(gui, text="(wait for license plate detection)")
-    contour_feed.grid(row=4, column=0)
-    contour_feed_label = Label(gui, text="ALPR: Contour")
-    contour_feed_label.grid(row=5, column=0, pady=(5, 5))
-
-    # corner feed.
-    corner_feed = Label(gui, text="(wait for license plate detection)")
-    corner_feed.grid(row=4, column=1)
-    corner_feed_label = Label(gui, text="ALPR: Contour")
-    corner_feed_label.grid(row=5, column=1, pady=((5, 5)))
-
-    # warp feed.
-    warp_feed = Label(gui, text="(wait for license plate detection)")
-    warp_feed.grid(row=4, column=2)
-    warp_feed_label = Label(gui, text="ALPR: Warp")
-    warp_feed_label.grid(row=5, column=2, pady=((5, 5)))
+    # OCR feed.
+    ocr_feed = Label(gui, text="(wait for license plate detection)")
+    ocr_feed.grid(row=2, column=1)
+    ocr_feed_label = Label(gui, text="ALPR: OCR")
+    ocr_feed_label.grid(row=3, column=1, pady=(5, 5))
 
     # Step 1: Loading model.
     device = select_device(device)
@@ -158,7 +137,9 @@ def inference(
                 im0, line_width=line_thickness, example=str(names))
             imc = im0.copy()
 
-            iminput, imgray, imthres, imcontour, imcorner, imwarp = None, None, None, None, None, None
+            iminput, imgray, imthres, imocr = None, None, None, None
+            license_number = ''
+
             video_feed_label.configure(
                 text=f"No license plate detected.", background="red")
             if len(det):
@@ -183,21 +164,77 @@ def inference(
                         xyxy, imc, BGR=True, save=False))
 
                 # Step 3.3: Find biggest crop section.
-                imbc = None
+                iminput = None
                 maxArea = 0
                 for imc in imcs:
                     area = imc.shape[0] * imc.shape[1]
                     if area > maxArea:
-                        imbc = imc
+                        iminput = imc
 
-                # Step 3.4: Apply OCR
-                iminput, imgray, imthres, imcontour, imcorner, imwarp = warp_image(
-                    imbc)
-                is_detect, license_number = image_to_license_number(
-                    imthres if imthres is not None else iminput)
+                # Step 3.4: Apply OCR.
+                ocr_outputs = reader.readtext(
+                    iminput, add_margin=0.3, width_ths=0.9)
+                imocr = iminput.copy()
+                texts = []
+                boxes = []
+                # filter out output with less than 60% confidence.
+                for (bbox, text, prob) in ocr_outputs:
+                    if prob > 0.1:
+                        texts.append(text)
+                        boxes.append({'bbox': bbox, 'chosen': False})
 
-                # Step 3.5: Update node values.
-                if is_detect:
+                # Step 3.5: Check pattern license number pattern.
+                filtered_texts = []  # limit 2 texts
+                for i, text in enumerate(texts):  # ignore province.
+                    # if reach limit filtered texts. -> break loop.
+                    if len(filtered_texts) >= 2:
+                        break
+                    # if text more than 7 characters or less than 2 -> ignore text.
+                    elif len(text) > 8 or len(text) < 2:
+                        continue
+                    else:
+                        is_contain_number = False
+                        for char in text:  # check is text contain number.
+                            if char.isdigit():
+                                is_contain_number = True
+                                break
+                        # append when contain number or has 2 characters.
+                        if is_contain_number or len(text) <= 2:
+                            filtered_texts.append(text)
+                            boxes[i].update({'chosen': True})
+                for box in boxes:  # draw box on ocr image.
+                    (tl, tr, br, bl) = box.get('bbox', None)
+                    chosen = box.get('chosen', None)
+                    tl = (int(tl[0]), int(tl[1]))
+                    tr = (int(tr[0]), int(tr[1]))
+                    br = (int(br[0]), int(br[1]))
+                    bl = (int(bl[0]), int(bl[1]))
+                    cv2.rectangle(imocr, tl, br, (0, 255, 0)
+                                  if chosen else (0, 0, 255), 2)
+
+                filtered_text = ''
+                # re-order texts if has more than one text.
+                if len(filtered_texts) == 2:
+                    i_0_all_digit = True
+                    for char in filtered_texts[0]:
+                        if not char.isdigit():
+                            i_0_all_digit = False
+                            break
+                    filtered_text = f'{filtered_texts[1]}{filtered_texts[0]}' if i_0_all_digit else f'{filtered_texts[0]}{filtered_texts[1]}'
+                if len(filtered_texts) == 1:  # assign to filtered_text.
+                    filtered_text = filtered_texts[0]
+                is_contain_digit = False
+                for char in filtered_text:  # check is filtered_text contains number.
+                    if char.isdigit():
+                        is_contain_digit = True
+                        break
+                if is_contain_digit:
+                    for char in filtered_text:
+                        if contains(LICENSE_NUMBER_CHARS, char):
+                            license_number += char
+
+                # Step 3.6: Update node values.
+                if len(license_number) > 0:
                     queue.put(license_number)
                     video_feed_label.configure(
                         text=f"License plate detected. License number: {license_number}", background="green")
@@ -215,34 +252,14 @@ def inference(
             video_feed.configure(image=imgtk_im0)
             if iminput is not None:
                 img_iminput = Image.fromarray(iminput).resize(
-                    (256, 144), Image.ANTIALIAS)
+                    (400, 225), Image.ANTIALIAS)
                 imgtk_iminput = ImageTk.PhotoImage(img_iminput)
                 input_feed.configure(image=imgtk_iminput)
-            if imgray is not None:
-                img_imgray = Image.fromarray(imgray).resize(
-                    (256, 144), Image.ANTIALIAS)
-                imgtk_imgray = ImageTk.PhotoImage(img_imgray)
-                gray_feed.configure(image=imgtk_imgray)
-            if imthres is not None:
-                img_imthres = Image.fromarray(imthres).resize(
-                    (256, 144), Image.ANTIALIAS)
-                imgtk_imthres = ImageTk.PhotoImage(img_imthres)
-                thres_feed.configure(image=imgtk_imthres)
-            if imcontour is not None:
-                img_imcontour = Image.fromarray(imcontour).resize(
-                    (256, 144), Image.ANTIALIAS)
+            if imocr is not None:
+                img_imcontour = Image.fromarray(imocr).resize(
+                    (400, 225), Image.ANTIALIAS)
                 imgtk_imcontour = ImageTk.PhotoImage(img_imcontour)
-                contour_feed.configure(image=imgtk_imcontour)
-            if imcorner is not None:
-                img_imcorner = Image.fromarray(imcorner).resize(
-                    (256, 144), Image.ANTIALIAS)
-                imgtk_imcorner = ImageTk.PhotoImage(img_imcorner)
-                corner_feed.configure(image=imgtk_imcorner)
-            if imwarp is not None:
-                img_imwarp = Image.fromarray(imwarp).resize(
-                    (256, 144), Image.ANTIALIAS)
-                imgtk_imwarp = ImageTk.PhotoImage(img_imwarp)
-                warp_feed.configure(image=imgtk_imwarp)
+                ocr_feed.configure(image=imgtk_imcontour)
 
             gui.update_idletasks()
             gui.update()
