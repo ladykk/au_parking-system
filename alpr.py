@@ -189,8 +189,8 @@ def inference(
                     # if reach limit filtered texts. -> break loop.
                     if len(filtered_texts) >= 2:
                         break
-                    # if text more than 7 characters or less than 2 -> ignore text.
-                    elif len(text) > 8 or len(text) < 2:
+                    # if text more than 10 characters or less than 2 -> ignore text.
+                    elif len(text) > 10 or len(text) < 2:
                         continue
                     else:
                         is_contain_number = False
