@@ -5,7 +5,8 @@ from transaction import Transaction
 class ExitState(State):
 
     def __init__(self):
-        super().__init__('exit', init_state='idle')
+        super().__init__('exit', init_state='idle',
+                         source="rtsp://admin:a1234567@10.0.0.100:554/Streaming/Channels/201/")
         self.alpr.start()
 
     # [S0]: Idle
