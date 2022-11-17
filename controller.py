@@ -7,6 +7,7 @@ from firebase_admin.db import Event as dbEvent
 from deepdiff import DeepDiff
 from datetime import datetime
 from utils.time import datetime_now, seconds_from_now
+import argparse
 
 
 class ControllerClient:
@@ -151,7 +152,7 @@ class ControllerClient:
     def _command_exec(self):
         if self._command != '':
             input = self._command.split(':')
-            if hasattr(self, f'_c_{input[0]}()'):
+            if hasattr(self, f'_c_{input[0]}'):
                 if input[1]:
                     getattr(self, f'_c_{input[0]}')(input[1])
                 else:
@@ -240,11 +241,29 @@ class ControllerServer:
         self._db_ref.child('command').set(f'close_barricade')
 
 
-def main():
+def parse_opt():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--entrance', action='store_true',
+                        help="Connect the controller to the entrance node.")
+    parser.add_argument('--exit', action='store_true',
+                        help="Connect the controller to the exit node.")
+    parser.add_argument('--port', type=str, default='',
+                        help="Controller's serial port.")
+    return parser.parse_args()
+
+
+def main(opt):
+    # Check for arguments
+    if opt.port == '' or (not opt.entrance and not opt.exit):
+        print("Invalid arguments.")
+        return
+
     # > Create contrller client.
-    controller = ControllerClient("test", "<port>")
+    controller = ControllerClient(
+        'entrance' if opt.entrance else 'exit' if opt.exit else '', opt.port)
     controller.start()
 
 
 if __name__ == '__main__':
-    main()
+    opt = parse_opt()
+    main(opt)

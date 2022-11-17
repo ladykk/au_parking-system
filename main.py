@@ -3,9 +3,9 @@ from exit import ExitState
 
 
 def main():
-    entrance = EntranceState()
+    entrance = EntranceState(dev=True)
     entrance.start()
-    exit = ExitState()
+    exit = ExitState(dev=True)
     exit.start()
 
     while entrance.is_running() and exit.is_running():

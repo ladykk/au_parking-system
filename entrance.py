@@ -4,9 +4,9 @@ from transaction import Transaction
 
 class EntranceState(State):
 
-    def __init__(self):
+    def __init__(self, dev=False):
         super().__init__('entrance', init_state='idle',
-                         source="rtsp://admin:a1234567@10.0.0.100:554/Streaming/Channels/101/")
+                         source="0" if dev else "rtsp://admin:a1234567@10.0.0.100:554/Streaming/Channels/101/")
         self.alpr.start()
 
     # [S0]: Idle

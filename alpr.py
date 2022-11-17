@@ -137,7 +137,7 @@ def inference(
                 im0, line_width=line_thickness, example=str(names))
             imc = im0.copy()
 
-            iminput, imgray, imthres, imocr = None, None, None, None
+            iminput, imocr = None, None
             license_number = ''
 
             video_feed_label.configure(
@@ -371,7 +371,6 @@ class ALPR:
     def _command_exec(self):
         if self._command != '':
             input = self._command.split(':')
-            self._logger.info(input)
             if hasattr(self, f'_c_{input[0]}'):
                 if len(input) > 1:
                     getattr(self, f'_c_{input[0]}')(input[1])

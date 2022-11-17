@@ -4,9 +4,9 @@ from transaction import Transaction
 
 class ExitState(State):
 
-    def __init__(self):
+    def __init__(self, dev=False):
         super().__init__('exit', init_state='idle',
-                         source="rtsp://admin:a1234567@10.0.0.100:554/Streaming/Channels/201/")
+                         source="0" if dev else "rtsp://admin:a1234567@10.0.0.100:554/Streaming/Channels/201/")
         self.alpr.start()
 
     # [S0]: Idle
@@ -131,6 +131,7 @@ class ExitState(State):
             return
 
     # [S4]: Failed.
+
     def _failed(self):  # > Logic
         # > Next state
         # 1.After 10 seconds and not have previous issue -> [S0:Idle]
