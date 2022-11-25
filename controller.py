@@ -58,8 +58,8 @@ class ControllerClient:
         self._stop_event = Event()
 
     # > Get functions
-    def k_hover(self): return self.k_sensor <= self._hover_cm
-    def p_has_car(self): return self.p_sensor <= self._car_cm
+    def k_hover(self): return self.k_sensor <= self._hover_cms
+    def p_has_car(self): return self.p_sensor <= self._car_cms
 
     # > Database functions
     def _format_db_status(self): return {
@@ -73,7 +73,7 @@ class ControllerClient:
     }
 
     def _format_db_config(self): return {
-        "hover_cms": self._hover_cm,
+        "hover_cms": self._hover_cms,
         "car_cms": self._car_cms
     }
 
@@ -133,16 +133,17 @@ class ControllerClient:
         self.mode = True if variables[0] == '1' else False
         self.b_open = True if variables[1] == '1' else False
         self.b_close = True if variables[2] == '1' else False
-        self.k_sensor = int(variables[3])
-        self.k_button = True if variables[4] == '1' else False
-        self.p_sensor = int(variables[5])
-        self.p_barricade = True if variables[6] == '1' else False
+        self.k_button = True if variables[3] == '1' else False
+        self.p_barricade = True if variables[4] == '1' else False
+        self.k_sensor = int(variables[5])
+        self.p_sensor = int(variables[6])
+        
 
-        if self._is_db_difference():
+        if self._is_status_difference():
             self._db_ref.child('status').set(self._format_db_status())
 
         if self._is_config_difference():
-            self._db_ref.child('config').set(self._format_config())
+            self._db_ref.child('config').set(self._format_db_config())
 
         if seconds_from_now(self._connected_timestamp, 5):
             new_datetime, new_datetime_string = datetime_now()
@@ -153,9 +154,9 @@ class ControllerClient:
         if self._command != '':
             input = self._command.split(':')
             if hasattr(self, f'_c_{input[0]}'):
-                if input[1]:
+                if len(input) == 2:
                     getattr(self, f'_c_{input[0]}')(input[1])
-                else:
+                elif len(input) == 1:
                     getattr(self, f'_c_{input[0]}')()
             self._db_ref.child('command').set('')
 
