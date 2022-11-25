@@ -125,18 +125,25 @@ class ControllerClient:
         self._logger.info('update thread stopped.')
 
     def _update(self):
-        data = self._arduino.readline().decode('ascii')
-        input = data.strip('\n\r').split(':')
-        if(input[0] != "Values"):
-            return  # skipping if not values.
-        variables = input[1].split(',')  # convert into array and assign.
-        self.mode = True if variables[0] == '1' else False
-        self.b_open = True if variables[1] == '1' else False
-        self.b_close = True if variables[2] == '1' else False
-        self.k_button = True if variables[3] == '1' else False
-        self.p_barricade = True if variables[4] == '1' else False
-        self.k_sensor = int(variables[5])
-        self.p_sensor = int(variables[6])
+        try:
+            data = self._arduino.readline().decode('ascii')
+            input = data.strip('\n\r').split(':')
+            if(input[0] != "Values"):
+                return  # skipping if not values.
+            variables = input[1].split(',')  # convert into array and assign.
+            self.mode = True if variables[0] == '1' else False
+            self.b_open = True if variables[1] == '1' else False
+            self.b_close = True if variables[2] == '1' else False
+            self.k_button = True if variables[3] == '1' else False
+            self.p_barricade = True if variables[4] == '1' else False
+            self.k_sensor = int(variables[5])
+            self.p_sensor = int(variables[6])
+        except UnicodeDecodeError:
+            self._logger.warning('Cannot read input.')
+        except IndexError:
+            self._logger.warning('Out of index.')
+        except:
+            self._logger.warning('Some error occured.')
         
 
         if self._is_status_difference():
