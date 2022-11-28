@@ -1,12 +1,14 @@
 from datetime import datetime, timedelta
 from firebase import Db
 from firebase_admin.firestore import firestore
+from utils.logger import getLogger
 
 
 class Transaction(object):
 
     list = dict()
     transactions_ref = Db.collection("transactions")
+    _logger = getLogger('Transaction')
 
     def __init__(
         self,
@@ -41,28 +43,42 @@ class Transaction(object):
     def is_license_number_exists(license_number: str):
         for tid, transaction in Transaction.list.items():
             if transaction.license_number == license_number:
-                if not transaction.is_out():
+                if transaction.is_out() is False:
+                    Transaction._logger.info(
+                        f"License number: {license_number} [EXISTS] | TID: {tid}")
                     return True, tid
+        Transaction._logger.info(
+            f"License number: {license_number} [NOT EXISTS]")
         return False, None
 
     @staticmethod
     def is_license_number_unpaid(license_number: str):
         for tid, transaction in Transaction.list.items():
             if transaction.license_number == license_number:
-                if not transaction.is_paid():
+                if transaction.is_paid() is False and transaction.is_out() is True:
+                    Transaction._logger.info(
+                        f"License number: {license_number} [UNPAID] | TID: {tid}")
                     return True, tid
+        Transaction._logger.info(
+            f"License number: {license_number} [NO UNPAID]")
         return False, None
 
     @staticmethod
     def add(license_number: str):
         is_exists, tid = Transaction.is_license_number_exists(license_number)
-        if is_exists:
-            return False, None
+        if is_exists is True:
+            Transaction._logger.error(
+                f'Cannot add transaction "{license_number}". (Reason: License number is existing in the system.)')
+            return False, tid
         is_unpaid, tid = Transaction.is_license_number_unpaid(license_number)
-        if is_unpaid:
+        if is_unpaid is True:
+            Transaction._logger.error(
+                f'Cannot add transaction "{license_number}". (Reason: License number has an unpaid transaction.)')
             return False, tid
         update_time, ref = Transaction.transactions_ref.add(
             {"license_number": license_number, "timestamp_in": firestore.SERVER_TIMESTAMP})
+        Transaction._logger.info(
+            f'Transaction added. [License number: {license_number} | TID: {ref.id}]')
         return True, ref.id
 
     @staticmethod
@@ -70,24 +86,25 @@ class Transaction(object):
         return Transaction.list.get(tid, None)
 
     def update(self, data: dict):
-        self.tid = data.get("tid", ""),
-        self.license_number = data.get("license_number"),
-        self.timestamp_in = data.get("timestamp_in"),
-        self.fee = data.get("fee", 0),
-        self.status = data.get("status", ""),
-        self.paid = data.get("paid", 0),
-        self.timestamp_out = data.get("timestamp_out", None)
+        self.tid = data.get("tid", self.tid)
+        self.license_number = data.get("license_number", self.license_number)
+        self.timestamp_in = data.get("timestamp_in", self.timestamp_in)
+        self.fee = data.get("fee", self.fee)
+        self.status = data.get("status", self.status)
+        self.paid = data.get("paid", self.paid)
+        self.timestamp_out = data.get("timestamp_out", self.timestamp_out)
 
     def is_paid(self):
         return self.status == "Paid"
 
     def is_out(self):
-        return self.timestamp_out is datetime
+        return self.timestamp_out is not None
 
     def closed(self):
         # Update timestamp_out.
         update_time = Db.collection("transactions").document(self.tid).update(
             {"timestamp_out": firestore.SERVER_TIMESTAMP, "is_edit": True})
+        Transaction._logger.info(f"Transaction closed. [TID: {self.tid}]")
 
 
 def on_transactions_snapshot(collection, changes, read_time):
@@ -107,4 +124,4 @@ def on_transactions_snapshot(collection, changes, read_time):
 
 
 Transaction.transactions_ref.where("timestamp_in", ">=", datetime.now(
-) - timedelta(weeks=1)).on_snapshot(on_transactions_snapshot)
+) - timedelta(weeks=4)).on_snapshot(on_transactions_snapshot)

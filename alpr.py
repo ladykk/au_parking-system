@@ -40,7 +40,9 @@ def inference(
     stop_event: Event,
 ):
     # > Get logger and setting the logging level.
-    logger = getLogger(f'ALPR.{name}')
+    logger = getLogger(f'{name.title()}')
+    logger.propagate = False
+    logger.info("YOLOv5 initializing.")
 
     # > Initialze YOLOv5 settings.
     source = str(source)
@@ -60,9 +62,11 @@ def inference(
     dnn = False  # Use OpenCV DNN for ONNX inference.
 
     # > Initialize EasyOCR reader.
+    logger.info("EasyOCR initializing.")
     reader = easyocr.Reader(['th'])
 
     # GUI settings
+    logger.info("Preview GUI initializing.")
     gui = Tk()
     gui.title(f'ALPR: {name.capitalize()} Preview')
     gui.geometry("800x750+20+0" if name != 'exit' else "800x750+850+0")
@@ -285,7 +289,7 @@ class ALPR:
     ):
         # > Local variables
         self.name = name
-        logger_name = f'ALPR.{name.title()}'
+        logger_name = f'{name.title()}'
         self._logger = getLogger(logger_name)
 
         # > YOLOv5 configuration
@@ -315,6 +319,9 @@ class ALPR:
             daemon=True
         )
 
+        self._logger.info(
+            f"{self.name.title()} ALPR initialized. (source: {self._source})")
+
     # > Database functions
     def _format_status_db(self):
         return {
@@ -333,18 +340,23 @@ class ALPR:
 
     # > Thread functions
     def start(self):
+        self._logger.info(f"{self.name.title()} ALPR is starting.")
         if self._process.is_alive():
-            return self._logger.warning("process is already running.")
+            return self._logger.warning("Process is already running.")
         self._stop_event.clear()
         self._process.start()
         self._thread.start()
 
     def stop(self):
+        self._logger.info(f"{self.name.title()} ALPR is stopping.")
         self._stop_event.set()
+        self._process.join()
+        self._thread.join()
 
     # > Thread logic functions
     def _update(self):
         # initialize value in the databse.
+        self._logger.info("Initialize alpr's infos to Realtime Database.")
         self._db_ref.child("status").set(self._format_status_db())
         new_datetime, new_datetime_string = datetime_now()
         self._connected_timestamp = new_datetime
@@ -358,23 +370,27 @@ class ALPR:
                 old_license_number = self.license_numbers.get(license_number)
                 self.license_numbers.update(
                     {license_number: old_license_number + 1 if old_license_number else 1})
-                if self._is_db_difference():
-                    self._db_ref.child("status").set(self._format_status_db())
-            if self._command != '':
-                self._command_exec()
+            if self._is_db_difference():
+                self._db_ref.child("status").set(self._format_status_db())
             if seconds_from_now(self._connected_timestamp, 5):
                 new_datetime, new_datetime_string = datetime_now()
                 self._connected_timestamp = new_datetime
                 self._db_ref.child("connected_timestamp").set(
                     new_datetime_string)
+            self._command_exec()
+        self._logger.info(f"{self.name.title()} ALPR has stopped.")
 
     def _command_exec(self):
         if self._command != '':
+            self._logger.info(f'Received command: {self._command}')
             input = self._command.split(':')
             if hasattr(self, f'_c_{input[0]}'):
-                if len(input) > 1:
+                if len(input) == 2:
+                    self._logger.info(
+                        f'Command Executed. [_c_{input[0]}({input[1]})]')
                     getattr(self, f'_c_{input[0]}')(input[1])
-                else:
+                elif len(input) == 1:
+                    self._logger.info(f'Command Executed. [_c_{input[0]}()]')
                     getattr(self, f'_c_{input[0]}')()
             self._db_ref.child('command').set('')
 
@@ -392,6 +408,7 @@ class ALPR:
         return list(self.license_numbers.keys())
 
     def clear(self):
+        self._logger.info("Clear ALPR.")
         self.license_numbers.clear()
 
     def is_detect(self):

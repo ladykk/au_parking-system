@@ -1,3 +1,4 @@
+from time import sleep
 from state import State
 from transaction import Transaction
 
@@ -41,7 +42,7 @@ class ExitState(State):
             # Check is license_number exit.
             is_exists, tid = Transaction.is_license_number_exists(
                 license_number)
-            if is_exists:  # Break if license_number exists.
+            if is_exists is True:  # Break if license_number exists.
                 f_tid = tid
                 f_license_number = license_number
                 break
@@ -55,11 +56,11 @@ class ExitState(State):
             self.info = {"tid": f_tid, "license_number": f_license_number}
             return
         # 2.Hand hovered on Controller -> [S0:Idle]
-        if self.controller.k_hover:
+        if self.controller.k_hover is True:
             self.next_state = "idle"
             return
-        # 3.If not found all afer (60 seconds) -> [S5:Failed]
-        if len(self.alpr.keys()) == len(self.info.get("checked_license_numbers", [])) and self.seconds_from_now(60):
+        # 3.If not found all afer (30 seconds) -> [S5:Failed]
+        if len(self.alpr.keys()) == len(self.info.get("checked_license_numbers", [])) and self.seconds_from_now(30):
             self.info = {"reason": "Not found license_number in the system."}
             self.next_state = "failed"
             return
@@ -71,12 +72,12 @@ class ExitState(State):
             self.next_state = "failed"
             return
         # Get transaction
-        transaction = Transaction.get(self.info.get("transaction"))
+        transaction = Transaction.get(self.info.get("tid"))
         if transaction is None:  # No transaction -> [S5:Failed]
             self.info = {"reason": "Transaction not exists in the system."}
             self.next_state = "failed"
             return
-        if transaction.is_paid():  # Transaction paid -> [S3: Success]
+        if transaction.is_paid() is True:  # Transaction paid -> [S3: Success]
             self.next_state = "success"
             return
         else:
@@ -86,7 +87,7 @@ class ExitState(State):
     # [S3]: Success
     def _init_success(self):  # > Entry
         # Get transaction
-        transaction = Transaction.get(self.info.get("transaction"))
+        transaction = Transaction.get(self.info.get("tid"))
         if transaction is None:  # No transaction -> [S5:Failed]
             self.info = {"reason": "Transaction not exists in the system."}
             self.next_state = "failed"
@@ -100,14 +101,18 @@ class ExitState(State):
 
     def _success(self):  # > Logic
       # Update is_car_pass when detected car at first time.
-        if self.controller.p_has_car and self.info.get("is_car_pass", False):
+        if self.controller.p_has_car is False and self.info.get("is_car_pass") is False:
             self.info.update({"is_car_pass": True})
 
         # > Next state
         # 1. Car has pass and not detected car.
-        if self.info.get("is_car_pass", False) and not self.controller.p_has_car:
+        if self.info.get("is_car_pass") is True and self.controller.p_has_car is False and self.seconds_from_now(5):
             self.next_state = "idle"
             return
+
+    def _exit_success(self):  # > Exit
+        # wait 5 more seconds.
+        sleep(5)
 
     # [S4]: Payment
     def _payment(self):  # > Logic
@@ -116,12 +121,12 @@ class ExitState(State):
             self.next_state = "failed"
             return
         # Get transaction
-        transaction = Transaction.get(self.info.get("transaction"))
+        transaction = Transaction.get(self.info.get("tid"))
         if transaction is None:  # No transaction -> [S5:Failed]
             self.info = {"reason": "Transaction not exists in the system."}
             self.next_state = "failed"
             return
-        if transaction.is_paid():  # Transaction paid -> [S3: Success]
+        if transaction.is_paid() is True:  # Transaction paid -> [S3: Success]
             self.next_state = "success"
             return
         # Transaction unpaid after 120 seconds -> [S4: Failed]
@@ -139,13 +144,13 @@ class ExitState(State):
             self.next_state = "idle"
             return
         # 2.Button pressed on Controller -> [S0:Idle]
-        if self.controller.k_button:
+        if self.controller.k_button is True:
             self.next_state = "idle"
             return
 
 
 def main():
-    exit = ExitState()
+    exit = ExitState(dev=True)
     exit.start()
 
 

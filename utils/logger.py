@@ -1,24 +1,22 @@
 import logging
 import platform
+from rich.logging import RichHandler
+
 
 def emojis(str=''):
     # Return platform-dependent emoji-safe version of string
     return str.encode().decode('ascii', 'ignore') if platform.system() == 'Windows' else str
 
+
 def getLogger(name=None, level=logging.INFO):
-  logger = logging.getLogger("Main" if name is None else name)
-  logger.setLevel(level)
-  handler = logging.StreamHandler()
-  handler.setFormatter(logging.Formatter("[%(name)s]:%(levelname)s:%(message)s"))
-  handler.setLevel(level)
-  logger.addHandler(handler)
-  return logger
+    logger = logging.getLogger("Main" if name is None else name)
+    logger.setLevel(level)
+    logger.propagate = False
+    if not logger.handlers:
+        handler = RichHandler()
+        handler.setFormatter(logging.Formatter(
+            "[%(name)s]: %(message)s"))
+        handler.setLevel(level)
+        logger.addHandler(handler)
 
-# Initialize Root Logger
-getLogger()
-for h in logging.root.handlers:
-  logging.root.removeHandler(h)
-
-LOGGER = logging.getLogger("Main")
-
-
+    return logger
