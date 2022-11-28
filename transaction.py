@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
-from firebase import Db
+from firebase import Db, Storage
 from firebase_admin.firestore import firestore
+from utils.time import datetime_to_upload_string
 from utils.logger import getLogger
+from hikvisionapi import Client
 
 
 class Transaction(object):
@@ -9,6 +11,7 @@ class Transaction(object):
     list = dict()
     transactions_ref = Db.collection("transactions")
     _logger = getLogger('Transaction')
+    _dvr = Client('http://192.168.2.170', 'admin', 'a1234567')
 
     def __init__(
         self,
@@ -64,19 +67,50 @@ class Transaction(object):
         return False, None
 
     @staticmethod
+    def _upload_image(license_number: str, timestamp: datetime, type: str):
+        try:
+            # Get image.
+            response = Transaction._dvr.Streaming.channels[101 if type == "in" else 201].picture(
+                method='get', type='opaque_data')
+            with open(f'{type}.jpg', 'wb') as f:
+                # Save image.
+                for chunk in response.iter_content(chunk_size=1024):
+                    if chunk:
+                        f.write(chunk)
+            # Upload image.
+            ref = Storage.blob(
+                f'transactions/{timestamp.strftime("%Y-%m-%d")}/{type}/{datetime_to_upload_string(timestamp)}_{license_number}.jpg')
+            ref.upload_from_filename(f'{type}.jpg')
+            ref.make_public()
+            return ref.public_url
+        except Exception as e:
+            Transaction._logger.error(e)
+            return None
+
+    @staticmethod
     def add(license_number: str):
+        # Check if license_number exists.
         is_exists, tid = Transaction.is_license_number_exists(license_number)
         if is_exists is True:
             Transaction._logger.error(
                 f'Cannot add transaction "{license_number}". (Reason: License number is existing in the system.)')
             return False, tid
+        # Check if license_number is unpaid.
         is_unpaid, tid = Transaction.is_license_number_unpaid(license_number)
         if is_unpaid is True:
             Transaction._logger.error(
                 f'Cannot add transaction "{license_number}". (Reason: License number has an unpaid transaction.)')
             return False, tid
-        update_time, ref = Transaction.transactions_ref.add(
-            {"license_number": license_number, "timestamp_in": firestore.SERVER_TIMESTAMP})
+        # Format info.
+        info = {"license_number": license_number,
+                "timestamp_in": datetime.now()}
+        # Upload image.
+        image = Transaction._upload_image(
+            license_number, info.get("timestamp_in"), "in")
+        if image is not None:
+            info.update({"image_in": image})
+        # Add transaction.
+        update_time, ref = Transaction.transactions_ref.add(info)
         Transaction._logger.info(
             f'Transaction added. [License number: {license_number} | TID: {ref.id}]')
         return True, ref.id
@@ -101,9 +135,16 @@ class Transaction(object):
         return self.timestamp_out is not None
 
     def closed(self):
-        # Update timestamp_out.
-        update_time = Db.collection("transactions").document(self.tid).update(
-            {"timestamp_out": firestore.SERVER_TIMESTAMP, "is_edit": True})
+        # Format info.
+        info = {"timestamp_out": datetime.now(), "is_edit": True}
+        # Upload image.
+        image = Transaction._upload_image(
+            self.license_number, info.get("timestamp_out"), "out")
+        if image is not None:
+            info.update({"image_out": image})
+        # Close transaction.
+        update_time = Db.collection(
+            "transactions").document(self.tid).update(info)
         Transaction._logger.info(f"Transaction closed. [TID: {self.tid}]")
 
 

@@ -110,7 +110,7 @@ class ExitState(State):
             self.next_state = "idle"
             return
 
-    def _exit_success(self):  # > Exit
+    def _end_success(self):  # > End
         # wait 5 more seconds.
         sleep(5)
 
