@@ -1,7 +1,7 @@
 from time import sleep
 from state import State
 from transaction import Transaction
-from firebase import Messaging
+from firebase import Messaging, messagePayload
 
 
 class EntranceState(State):
@@ -105,11 +105,9 @@ class EntranceState(State):
 
         # Hover to call staff.
         if self.controller.k_hover is True and self.info.get("call_staff") is False:
-            message = Messaging.Message(notification={
-                "title": "[Entrance]: Call at kiosk.",
-                "body": "Customer has called at entrance kiosk."
-            }, topic="staffs")
-            Messaging.send(message)
+
+            Messaging.send(messagePayload(
+                "[Entrance]: Call at kiosk.", "Customer has called at entrance kiosk.", "call_staff"))
             self.info.update({"call_staff": True})
 
         # > Next state

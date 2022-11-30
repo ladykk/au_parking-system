@@ -12,3 +12,14 @@ TempDb = db
 Db: firestore.firestore.Client = firestore.client()
 Storage = storage.bucket()
 Messaging = messaging
+
+
+def messagePayload(title, body, type):
+    return Messaging.Message(notification={
+        "title": title,
+        "body": body
+    },
+        data={
+        "type": type
+    },
+        topic="staffs")

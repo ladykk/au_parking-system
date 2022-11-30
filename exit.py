@@ -1,5 +1,5 @@
 from time import sleep
-from firebase import Messaging
+from firebase import Messaging, messagePayload
 from state import State
 from transaction import Transaction
 
@@ -73,21 +73,21 @@ class ExitState(State):
 
         # > Next state
         # 1.No tid -> [S5: Failed]
-        if self.info.get("tid", None) is None:  
+        if self.info.get("tid", None) is None:
             self.info = {"reason": "No transaction id."}
             self.next_state = "failed"
             return
         # 2.No transaction -> [S5:Failed]
-        if transaction is None:  
+        if transaction is None:
             self.info = {"reason": "Transaction not exists in the system."}
             self.next_state = "failed"
             return
         # 3.Transaction paid -> [S3: Success]
-        if transaction.is_paid() is True:  
+        if transaction.is_paid() is True:
             self.next_state = "success"
             return
         # 4.Transaction paid -> [S4: Payment]
-        else:  
+        else:
             self.next_state = "payment"
             return
 
@@ -130,28 +130,25 @@ class ExitState(State):
         # Get transaction
         transaction = Transaction.get(self.info.get("tid"))
 
-         # Hover to call staff.
+        # Hover to call staff.
         if self.controller.k_hover is True and self.info.get("call_staff") is False:
-            message = Messaging.Message(notification={
-                "title": "[Exit]: Call at kiosk.",
-                "body": "Customer has called at exit kiosk. (payment)"
-            }, topic="staffs")
-            Messaging.send(message)
+            Messaging.send(messagePayload(
+                "[Exit]: Call at kiosk.", "Customer has called at exit kiosk. (payment)", "call_staff"))
             self.info.update({"call_staff": True})
 
         # > Next state
         # 1.No tid -> [S5: Failed]
-        if self.info.get("tid", None) is None:  
+        if self.info.get("tid", None) is None:
             self.info = {"reason": "No transaction id."}
             self.next_state = "failed"
             return
         # 2.No transaction -> [S5:Failed]
-        if transaction is None:  
+        if transaction is None:
             self.info = {"reason": "Transaction not exists in the system."}
             self.next_state = "failed"
             return
         # 3.Transaction paid -> [S3: Success]
-        if transaction.is_paid() is True:  
+        if transaction.is_paid() is True:
             self.next_state = "success"
             return
         # 4.Transaction unpaid after 120 seconds -> [S4: Failed]
@@ -172,11 +169,8 @@ class ExitState(State):
     def _failed(self):  # > Logic
         # Hover to call staff.
         if self.controller.k_hover is True and self.info.get("call_staff") is False:
-            message = Messaging.Message(notification={
-                "title": "[Exit]: Call at kiosk.",
-                "body": "Customer has called at exit kiosk."
-            }, topic="staffs")
-            Messaging.send(message)
+            Messaging.send(messagePayload(
+                "[Exit]: Call at kiosk.", "Customer has called at exit kiosk.", "call_staff"))
             self.info.update({"call_staff": True})
 
         # > Next state
