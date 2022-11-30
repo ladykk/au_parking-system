@@ -11,7 +11,7 @@ class Transaction(object):
     list = dict()
     transactions_ref = Db.collection("transactions")
     _logger = getLogger('Transaction')
-    _dvr = Client('http://192.168.2.170', 'admin', 'a1234567')
+    _dvr = Client('http://10.0.0.100', 'admin', 'a1234567')
 
     def __init__(
         self,

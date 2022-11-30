@@ -1,6 +1,7 @@
 from time import sleep
 from state import State
 from transaction import Transaction
+from firebase import Messaging
 
 
 class EntranceState(State):
@@ -38,7 +39,7 @@ class EntranceState(State):
         if self.seconds_from_now(30):
             self.next_state = "idle"
             return
-        # 3.Cancel detection.
+        # 3.Cancel detection -> [S0:Idle]
         if self.controller.k_button is True:
             self.next_state = "idle"
             return
@@ -89,21 +90,35 @@ class EntranceState(State):
             self.next_state = "idle"
             return
 
-    def _end_success(self):  # > Exit
+    def _end_success(self):  # > End
         # wait 5 more seconds.
         sleep(5)
 
     # [S4]: Failed.
+    def _init_failed(self):
+        # Initialize call staff.
+        self.info.update({"call_staff": False})
+
     def _failed(self):  # > Logic
         tid = self.info.get("tid", None)
         transaction = Transaction.get(tid)
+
+        # Hover to call staff.
+        if self.controller.k_hover is True and self.info.get("call_staff") is False:
+            message = Messaging.Message(notification={
+                "title": "[Entrance]: Call at kiosk.",
+                "body": "Customer has called at entrance kiosk."
+            }, topic="staffs")
+            Messaging.send(message)
+            self.info.update({"call_staff": True})
+
         # > Next state
         # 1.Button pressed on Controller -> [S0:Idle]
         if self.controller.k_button is True:
             self.next_state = "idle"
             return
-        # 2.After 10 seconds and not have previous issue -> [S0:Idle]
-        if self.seconds_from_now(10) and tid is None:
+        # 2.After 15 seconds and not have previous issue -> [S0:Idle]
+        if self.seconds_from_now(15) and tid is None:
             self.next_state = "idle"
             return
         # 3.After issue solve or timeout 120 seconds  -> [S0:Idle]

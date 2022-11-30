@@ -131,7 +131,6 @@ class ControllerClient:
             while self._arduino.in_waiting:
                 self._update()
                 self._command_exec()
-        self._arduino.write(b'disable.\n')  # disable controller.
         self._logger.info(
             f"{self.name.title()} Controller Client has stopped.")
 

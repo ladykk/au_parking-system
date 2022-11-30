@@ -7,7 +7,6 @@ from firebase_admin.db import Event as dbEvent
 from deepdiff import DeepDiff
 from controller import ControllerServer
 from alpr import ALPR
-from transaction import Transaction
 
 
 class State(object):
@@ -102,27 +101,23 @@ class State(object):
         self._logger.info(f'{self.name.capitalize()} State has stopped.')
 
     def _update_state(self):
-        if self.next_state != '':
-            if self.next_state != self.current_state:
-                self._logger.info(
-                    f'Detect new state. ([{self.current_state}] -> [{self.next_state}])')
-                init_method = "_init_" + self.next_state
-                end_method = "_end_" + self.current_state
-
-                if hasattr(self, end_method):
-                    self._logger.info(f"Execute end method. [{end_method}]")
-                    getattr(self, end_method)()
-
-                self.prev_state = self.current_state
-                self.current_state = self.next_state
-                self.next_state = ''
-                self.enter_timestamp = datetime.now()
-                self._db_ref.child("status").set(self._format_status_db())
-                self._logger.info("Update state's info.")
-
-                if hasattr(self, init_method):
-                    self._logger.info(f"Execute init method. [{init_method}]")
-                    getattr(self, init_method)()
+        if self.next_state != '' and self.next_state != self.current_state:
+            self._logger.info(
+                f'Detect new state. ([{self.current_state}] -> [{self.next_state}])')
+            init_method = "_init_" + self.next_state
+            end_method = "_end_" + self.current_state
+            if hasattr(self, end_method):
+                self._logger.info(f"Execute end method. [{end_method}]")
+                getattr(self, end_method)()
+            self.prev_state = self.current_state
+            self.current_state = self.next_state
+            self.next_state = ''
+            self.enter_timestamp = datetime.now()
+            self._db_ref.child("status").set(self._format_status_db())
+            self._logger.info("Update state's info.")
+            if hasattr(self, init_method):
+                self._logger.info(f"Execute init method. [{init_method}]")
+                getattr(self, init_method)()
 
         if self._is_status_difference():
             self._db_ref.child("status").set(self._format_status_db())
