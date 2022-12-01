@@ -1,17 +1,16 @@
 from datetime import datetime, timedelta
 from firebase import Db, Storage
-from firebase_admin.firestore import firestore
 from utils.time import datetime_to_upload_string
 from utils.logger import getLogger
-from hikvisionapi import Client
+from hikvisionapi import Client as HikvisionClient
 
 
 class Transaction(object):
 
     list = dict()
-    transactions_ref = Db.collection("transactions")
+    ref = Db.collection("transactions")
     _logger = getLogger('Transaction')
-    _dvr = Client('http://10.0.0.100', 'admin', 'a1234567')
+    _dvr = HikvisionClient('http://10.0.0.100', 'admin', 'a1234567')
 
     def __init__(
         self,
@@ -164,5 +163,5 @@ def on_transactions_snapshot(collection, changes, read_time):
             Transaction.list.pop(change.document.id, None)
 
 
-Transaction.transactions_ref.where("timestamp_in", ">=", datetime.now(
+Transaction.ref.where("timestamp_in", ">=", datetime.now(
 ) - timedelta(weeks=4)).on_snapshot(on_transactions_snapshot)
