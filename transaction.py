@@ -42,6 +42,22 @@ class Transaction(object):
         )
 
     @staticmethod
+    def on_transactions_snapshot(collection, changes, read_time):
+        for change in changes:
+            if change.type.name == "ADDED":
+                Transaction.list.update(
+                    {change.document.id: Transaction.from_dict(change.document.to_dict())})
+            elif change.type.name == "MODIFIED":
+                transaction = Transaction.list.get(change.document.id, None)
+                if transaction is None:
+                    Transaction.list.update(
+                        {change.document.id: Transaction.from_dict(change.document.to_dict())})
+                else:
+                    transaction.update(change.document.to_dict())
+            elif change.type.name == "REMOVED":
+                Transaction.list.pop(change.document.id, None)
+
+    @staticmethod
     def is_license_number_exists(license_number: str):
         for tid, transaction in Transaction.list.items():
             if transaction.license_number == license_number:
@@ -147,21 +163,5 @@ class Transaction(object):
         Transaction._logger.info(f"Transaction closed. [TID: {self.tid}]")
 
 
-def on_transactions_snapshot(collection, changes, read_time):
-    for change in changes:
-        if change.type.name == "ADDED":
-            Transaction.list.update(
-                {change.document.id: Transaction.from_dict(change.document.to_dict())})
-        elif change.type.name == "MODIFIED":
-            transaction = Transaction.list.get(change.document.id, None)
-            if transaction is None:
-                Transaction.list.update(
-                    {change.document.id: Transaction.from_dict(change.document.to_dict())})
-            else:
-                transaction.update(change.document.to_dict())
-        elif change.type.name == "REMOVED":
-            Transaction.list.pop(change.document.id, None)
-
-
 Transaction.ref.where("timestamp_in", ">=", datetime.now(
-) - timedelta(weeks=4)).on_snapshot(on_transactions_snapshot)
+) - timedelta(weeks=4)).on_snapshot(Transaction.on_transactions_snapshot)
