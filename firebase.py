@@ -1,5 +1,6 @@
 import firebase_admin
-from firebase_admin import credentials, db, firestore, storage, messaging
+from firebase_admin import credentials, db, firestore, storage, messaging, auth
+import uuid
 
 cred = credentials.Certificate('configs/serviceAccountKey.json')
 
@@ -12,7 +13,7 @@ TempDb = db
 Db: firestore.firestore.Client = firestore.client()
 Storage = storage.bucket()
 Messaging = messaging
-
+Auth = auth
 
 def messagePayload(title, body, type):
     return Messaging.Message(notification={
@@ -20,6 +21,7 @@ def messagePayload(title, body, type):
         "body": body
     },
         data={
+        "id": str(uuid.uuid4()),
         "type": type
     },
         topic="staffs")
