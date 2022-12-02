@@ -27,6 +27,9 @@ class ExitState(State):
             self.next_state = "detect"
             return
 
+    def _c_set_idle(self):  # > Command
+        self.next_state = "idle"
+
     # [S1]: Detect
     def _init_detect(self):  # > Entry
         # Create checked_license_numbers.
@@ -90,6 +93,12 @@ class ExitState(State):
         else:
             self.next_state = "payment"
             return
+
+    def _c_set_get(self, input: str):  # > Command
+        args = input.split(",")
+        if len(args) == 2:
+            self.info = {"tid": args[0], "license_number": args[1]}
+            self.next_state = "get"
 
     # [S3]: Success
     def _init_success(self):  # > Entry

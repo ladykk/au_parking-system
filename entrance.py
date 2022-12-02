@@ -27,6 +27,9 @@ class EntranceState(State):
             self.next_state = "detect"
             return
 
+    def _c_set_idle(self):  # > Command
+        self.next_state = "idle"
+
     # [S1]: Detect.
     def _detect(self):  # > Logic
         # > Next state
@@ -71,6 +74,11 @@ class EntranceState(State):
             self.info = {"reason": "Cannot add transaction."}
             self.next_state = "failed"
             return
+
+    def _c_set_process(self, input: str):  # > Command
+        if input is str:
+            self.info = {"license_number": input}
+            self.next_state = "process"
 
     # [S3]: Success.
     def _init_success(self):  # > Entry
