@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from firebase import Db, Storage
-from utils.time import datetime_to_upload_string
+from utils.datetimefunc import datetime_to_upload_string
 from utils.logger import getLogger
 from hikvisionapi import Client as HikvisionClient
 

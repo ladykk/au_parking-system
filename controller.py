@@ -6,7 +6,7 @@ from firebase import TempDb
 from firebase_admin.db import Event as dbEvent
 from deepdiff import DeepDiff
 from datetime import datetime
-from utils.time import datetime_now, seconds_from_now
+from utils.datetimefunc import datetime_now, seconds_from_now
 import argparse
 
 
