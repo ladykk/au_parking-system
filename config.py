@@ -3,6 +3,9 @@ DVR_USERNAME = "admin"
 DVR_PASSWORD = "a1234567"
 DVR_IP_ADDR = "10.0.0.100"
 
+# Global
+DEV = False
+
 # Transaction
 ENTRANCE_CHANNEL = 101
 EXIT_CHANNEL = 201
