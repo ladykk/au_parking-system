@@ -2,13 +2,14 @@ from time import sleep
 from state import State
 from transaction import Transaction
 from line import callStaff
+from config import ENTRANCE_SOURCE
 
 
 class EntranceState(State):
 
     def __init__(self, dev=False):
         super().__init__('entrance', init_state='idle',
-                         source="0" if dev else "rtsp://admin:a1234567@10.0.0.100:554/Streaming/Channels/101/")
+                         source="0" if dev else ENTRANCE_SOURCE)
         self.alpr.start()
 
     # [S0]: Idle

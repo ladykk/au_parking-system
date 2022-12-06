@@ -24,6 +24,7 @@ from utils.datetimefunc import datetime_now, seconds_from_now
 import easyocr
 from operator import contains
 from constants.license_plate import LICENSE_NUMBER_CHARS
+from config import MODEL_NAME
 
 # > Initialize project path
 FILE = Path(__file__).resolve()
@@ -47,7 +48,7 @@ def inference(
     # > Initialze YOLOv5 settings.
     source = str(source)
     # Detection model path.
-    weights = ROOT / 'models/tha-license-plate-detection.pt'
+    weights = ROOT / f'models/{MODEL_NAME}'
     data = ROOT / 'data/coco128.yaml'  # Dataset path.
     imgsz = (640, 640)  # Inference size. (height, width)
     conf_thres = 0.25  # Confidence threshold.

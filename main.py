@@ -10,7 +10,7 @@ def main():
         exit.start()
         while entrance.is_running() and exit.is_running():
             pass
-    except:
+    except Exception:
         entrance.stop()
         exit.stop()
 

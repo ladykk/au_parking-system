@@ -7,6 +7,7 @@ from firebase_admin.db import Event as dbEvent
 from deepdiff import DeepDiff
 from datetime import datetime
 from utils.datetimefunc import datetime_now, seconds_from_now
+from config import HOVER_CMS, CAR_CMS
 import argparse
 
 
@@ -16,8 +17,8 @@ class ControllerClient:
         self,
         name: str,  # node name.
         port: str,  # serial port number
-        hover_cms: int = 5,  # centimeters to detect hover.
-        car_cms: int = 200,  # centimeters to detect car.
+        hover_cms: int = HOVER_CMS,  # centimeters to detect hover.
+        car_cms: int = CAR_CMS,  # centimeters to detect car.
         baud_rate: int = 9600,  # baud_rate
     ):
         # > Local variables
@@ -206,8 +207,8 @@ class ControllerServer:
     def __init__(
         self,
         name: str,
-        hover_cms: int = 5,  # centimeters to detect hover.
-        car_cms: int = 200,  # centimeters to detect car.
+        hover_cms: int = HOVER_CMS,  # centimeters to detect hover.
+        car_cms: int = CAR_CMS,  # centimeters to detect car.
     ):
         # > Local variables
         self.name = name
