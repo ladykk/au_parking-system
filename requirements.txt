@@ -52,3 +52,4 @@ firebase_admin>=6.0.1
 pyserial>=3.5
 easyocr>=1.6.2
 rich >= 12.6.0
+linenotipy >= 1.0.5

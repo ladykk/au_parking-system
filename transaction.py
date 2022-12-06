@@ -82,24 +82,29 @@ class Transaction(object):
         return False, None
 
     @staticmethod
+    def get_image(type: str):
+        response = Transaction._dvr.Streaming.channels[101 if type == "in" else 201].picture(
+            method='get', type='opaque_data')
+        with open(f'{type}.jpg', 'wb') as f:
+            # Save image.
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+
+    @staticmethod
     def _upload_image(license_number: str, timestamp: datetime, type: str):
         try:
             # Get image.
-            response = Transaction._dvr.Streaming.channels[101 if type == "in" else 201].picture(
-                method='get', type='opaque_data')
-            with open(f'{type}.jpg', 'wb') as f:
-                # Save image.
-                for chunk in response.iter_content(chunk_size=1024):
-                    if chunk:
-                        f.write(chunk)
+            Transaction.get_image(str)
             # Upload image.
             ref = Storage.blob(
                 f'transactions/{timestamp.strftime("%Y-%m-%d")}/{type}/{datetime_to_upload_string(timestamp)}_{license_number}.jpg')
             ref.upload_from_filename(f'{type}.jpg')
             ref.make_public()
             return ref.public_url
-        except Exception as e:
-            Transaction._logger.error(e)
+        except Exception:
+            Transaction._logger.error(
+                f'Cannot upload {"Entrance" if type == "in" else "Exit"} image.')
             return None
 
     @staticmethod

@@ -12,16 +12,4 @@ firebase_admin.initialize_app(cred, {
 TempDb = db
 Db: firestore.firestore.Client = firestore.client()
 Storage = storage.bucket()
-Messaging = messaging
 Auth = auth
-
-def messagePayload(title, body, type):
-    return Messaging.Message(notification={
-        "title": title,
-        "body": body
-    },
-        data={
-        "id": str(uuid.uuid4()),
-        "type": type
-    },
-        topic="staffs")

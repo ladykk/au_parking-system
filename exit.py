@@ -1,7 +1,7 @@
 from time import sleep
-from firebase import Messaging, messagePayload
 from state import State
 from transaction import Transaction
+from line import callStaff
 
 
 class ExitState(State):
@@ -141,8 +141,7 @@ class ExitState(State):
 
         # Hover to call staff.
         if self.controller.k_hover is True and self.info.get("call_staff") is False:
-            Messaging.send(messagePayload(
-                "[Exit]: Call at kiosk.", "Customer has called at exit kiosk. (payment)", "call_staff"))
+            callStaff("out")
             self.info.update({"call_staff": True})
 
         # > Next state
@@ -178,8 +177,7 @@ class ExitState(State):
     def _failed(self):  # > Logic
         # Hover to call staff.
         if self.controller.k_hover is True and self.info.get("call_staff") is False:
-            Messaging.send(messagePayload(
-                "[Exit]: Call at kiosk.", "Customer has called at exit kiosk.", "call_staff"))
+            callStaff("out")
             self.info.update({"call_staff": True})
 
         # > Next state
