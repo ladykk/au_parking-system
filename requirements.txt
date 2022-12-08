@@ -53,3 +53,4 @@ pyserial>=3.5
 easyocr>=1.6.2
 rich >= 12.6.0
 linenotipy >= 1.0.5
+hikvisionapi >= 0.3.2

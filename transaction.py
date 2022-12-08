@@ -3,7 +3,7 @@ from firebase import Db, Storage
 from utils.datetimefunc import datetime_to_upload_string
 from utils.logger import getLogger
 from hikvisionapi import Client as HikvisionClient
-from config import DVR_IP_ADDR, DVR_PASSWORD, DVR_USERNAME, ENTRANCE_CHANNEL, EXIT_CHANNEL
+from config import DVR_IP_ADDR, DVR_PASSWORD, DVR_USERNAME, ENTRANCE_CHANNEL, EXIT_CHANNEL, DEV
 
 
 class Transaction(object):
@@ -11,7 +11,7 @@ class Transaction(object):
     list = dict()
     ref = Db.collection("transactions")
     _logger = getLogger('Transaction')
-    _dvr = HikvisionClient(f'http://{DVR_IP_ADDR}', DVR_USERNAME, DVR_PASSWORD)
+    _dvr = None if DEV else HikvisionClient(f'http://{DVR_IP_ADDR}', DVR_USERNAME, DVR_PASSWORD)
 
     def __init__(
         self,
@@ -84,6 +84,8 @@ class Transaction(object):
 
     @staticmethod
     def get_image(type: str):
+        if DEV:
+            raise
         response = Transaction._dvr.Streaming.channels[ENTRANCE_CHANNEL if type == "in" else EXIT_CHANNEL].picture(
             method='get', type='opaque_data')
         with open(f'{type}.jpg', 'wb') as f:

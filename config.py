@@ -17,7 +17,7 @@ def getRTSP(channel: int):
 # ALPR
 MODEL_NAME = "tha-license-plate-detection.pt"
 ENTRANCE_SOURCE = getRTSP(ENTRANCE_CHANNEL)
-EXIT_SOURCE = getRTSP(ENTRANCE_CHANNEL)
+EXIT_SOURCE = getRTSP(EXIT_CHANNEL)
 
 # Controller
 HOVER_CMS = 5
