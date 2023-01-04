@@ -14,6 +14,7 @@ EXIT_CHANNEL = 201
 def getRTSP(channel: int):
     return f"rtsp://{DVR_USERNAME}:{DVR_PASSWORD}@{DVR_IP_ADDR}:554/Streaming/Channels/{str(channel)}/"
 
+
 # ALPR
 MODEL_NAME = "tha-license-plate-detection.pt"
 ENTRANCE_SOURCE = getRTSP(ENTRANCE_CHANNEL)

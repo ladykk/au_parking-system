@@ -10,7 +10,7 @@ from multiprocessing import Queue
 from models.common import DetectMultiBackend
 from utils.dataloaders import LoadStreams
 from utils.general import (
-    check_img_size, non_max_suppression, scale_coords)
+    check_img_size, non_max_suppression, scale_boxes)
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, time_sync
 from utils.logger import getLogger
@@ -149,7 +149,7 @@ def inference(
                 text=f"No license plate detected.", background="red")
             if len(det):
                 # Rescale boxes from img_size to im0 size
-                det[:, :4] = scale_coords(
+                det[:, :4] = scale_boxes(
                     im.shape[2:], det[:, :4], im0.shape).round()
 
                 # Print results
@@ -177,6 +177,8 @@ def inference(
                         iminput = imc
 
                 # Step 3.4: Apply OCR.
+                iminput = cv2.equalizeHist(
+                    cv2.cvtColor(iminput, cv2.COLOR_BGR2GRAY))
                 ocr_outputs = reader.readtext(
                     iminput, add_margin=0.3, width_ths=0.9)
                 imocr = iminput.copy()
@@ -220,12 +222,8 @@ def inference(
                 filtered_text = ''
                 # re-order texts if has more than one text.
                 if len(filtered_texts) == 2:
-                    i_0_all_digit = True
-                    for char in filtered_texts[0]:
-                        if not char.isdigit():
-                            i_0_all_digit = False
-                            break
-                    filtered_text = f'{filtered_texts[1]}{filtered_texts[0]}' if i_0_all_digit else f'{filtered_texts[0]}{filtered_texts[1]}'
+                    i_0_front = len(filtered_texts[0]) < 4
+                    filtered_text = f'{filtered_texts[0]}{filtered_texts[1]}' if i_0_front else f'{filtered_texts[1]}{filtered_texts[0]}'
                 if len(filtered_texts) == 1:  # assign to filtered_text.
                     filtered_text = filtered_texts[0]
                 is_contain_digit = False
